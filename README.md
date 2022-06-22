@@ -1,41 +1,54 @@
+
+
+
+
+# Minecraft RPC (Havocraft)
+A [gRPC](https://grpc.io) interface for Minecraft. 
+
 We will be editing `./src/main/proto/minecraft.proto` and `./src/main/java/dk/itu/real/ooe/services/MinecraftService.java`, to add new python commands via which we can interact with our modded Minecraft server. (E.g., we'd like to have a command to remove all collectible items, and add certain block types.) We will test functionality in `clients/python/example.py`.
 
-Navigate to this folder. Then, to generate the grpc python files:
-```
-python -m grpc_tools.protoc -I./ --python_out=./clients/python/ --grpc_python_out=./clients/python/ ./src/main/proto/minecraft.proto
-```
-To build the minecraft mod as a jar:
-```
-mvn install
-```
 
-# Minecraft RPC
-A [gRPC](https://grpc.io) interface for Minecraft
+## Install Dependencies
 
-### Starting the modded Minecraft server
-
+### Java (for building the mod)
 * Install Java 1.8 (You can check your version with `java -version`)
   * unix: `sudo apt-get install openjdk-8-jre`
   * osx: [mkyong.com/java/how-to-install-java-on-mac-osx](https://mkyong.com/java/how-to-install-java-on-mac-osx/)  
-* Create a folder `minecraft-rpc`
-* Download the latest stable [spongevanilla 1.12.2](https://www.spongepowered.org/downloads/spongevanilla/stable/1.12.2) into `minecraft-rpc` 
-* Download the latest [minecraft-rpc jar](https://github.com/real-itu/minecraft-rpc/packages/434436) into `minecraft-rpc/mods`
-* Your `minecraft-rpc` should look like (where `xxx` are version numbers)
+
+### Python (for compiling grpc)
+After creating a new conda environment, install dependencies:
 ```
-minecraft-rpc/
-    spongevanilla-1.12.2-xxx.jar
-    mods/
-        minecraft-rpc-xxx.jar      
+python -m pip install grpcio
+python -m pip install grpcio-tools
 ```
-* Start the server with `java -jar spongevanilla-1.12.2-xxx.jar`
+
+## Overwrite and Compile the grpc script
+* Add your favorite Minecraft item in `./minecraft-rpc/src/main/proto/minecraft.proto`
+* Navigate to the `./` of this repo. Then generate the grpc python files as follow:
+```
+python -m grpc_tools.protoc -I./ --python_out=./clients/python/ --grpc_python_out=./clients/python/ ./src/main/proto/minecraft.proto
+```
+The `minecraft_pb2_grpc.py` and `minecraft_pb2.py` should be available in `./clients/python` folder. Or you can place them into the folder in which you place the `mc_render.py` (or any other python script you're working on).
+
+## Build the Minecraft Mod
+Modify the mod:
+* Go to `./src/main/java/dk/itu/real/ooe/services/MinecraftService.java`
+* Overwrite your favorite function :D
+* Build the minecraft mod as a jar:
+```
+mvn install
+```
+The `minecraft-rpc-0.0.5.jar` will be available after this. Put this `jar` file inside `./server/mods`
+
+## Run 
+* Start the server with 
+```
+java -jar ./server/spongevanilla-1.12.2-7.3.0.jar
+```
 * The first time you start the server you must accept the Minecraft EULA by modifying eula.txt
+* You can change the properties of the world by modifying `server.properties`
 * You should see a bunch of output including `[... INFO] [minecraft_rpc]: Listening on 5001`. 
 This means it's working and the server is ready for commands on port 5001.
 
-### Calling the server
-
-The interface is defined using [gRPC](https://grpc.io). Read the definition at [src/main/proto/minecraft.proto](src/main/proto/minecraft.proto)
-
-See [clients](clients) for generated clients and examples
-
-Using the interface definition file you can generate clients for (almost) any programming language you like. See [https://grpc.io/docs/languages/](https://grpc.io/docs/languages/)
+# Reference 
+For more information, see [Evocraft](https://github.com/real-itu/Evocraft-py) and the original [Minecraft RPC](https://github.com/real-itu/minecraft-rpc)
