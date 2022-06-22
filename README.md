@@ -41,14 +41,17 @@ mvn install
 The `minecraft-rpc-0.0.5.jar` will be available after this. Put this `jar` file inside `./server/mods`
 
 ## Run 
+* Go to `./server`
 * Start the server with 
 ```
-java -jar ./server/spongevanilla-1.12.2-7.3.0.jar
+java -jar spongevanilla-1.12.2-7.3.0.jar
 ```
 * The first time you start the server you must accept the Minecraft EULA by modifying eula.txt
 * You can change the properties of the world by modifying `server.properties`
 * You should see a bunch of output including `[... INFO] [minecraft_rpc]: Listening on 5001`. 
 This means it's working and the server is ready for commands on port 5001.
+
+Note that if you run `java -jar ./server/spongevanilla-1.12.2-7.3.0.jar` inside the `./` folder, new `eula.txt` and `server.properties` will be generated and applied. So we recommand you not being too lazy to go to `./server` folder :D
 
 # Reference 
 For more information, see [Evocraft](https://github.com/real-itu/Evocraft-py) and the original [Minecraft RPC](https://github.com/real-itu/minecraft-rpc)
