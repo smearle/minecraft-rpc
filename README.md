@@ -1,3 +1,14 @@
+We will be editing `./src/main/proto/minecraft.proto` and `./src/main/java/dk/itu/real/ooe/services/MinecraftService.java`, to add new python commands via which we can interact with our modded Minecraft server. (E.g., we'd like to have a command to remove all collectible items, and add certain block types.) We will test functionality in `clients/python/example.py`.
+
+Navigate to this folder. Then, to generate the grpc python files:
+```
+python -m grpc_tools.protoc -I./ --python_out=./clients/python/ --grpc_python_out=./clients/python/ ./src/main/proto/minecraft.proto
+```
+To build the minecraft mod as a jar:
+```
+mvn install
+```
+
 # Minecraft RPC
 A [gRPC](https://grpc.io) interface for Minecraft
 
