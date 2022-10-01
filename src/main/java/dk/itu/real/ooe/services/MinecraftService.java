@@ -10,6 +10,8 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.spongepowered.api.Sponge;
 import org.spongepowered.api.entity.Entity;
 import org.spongepowered.api.entity.EntityTypes;
+import org.spongepowered.api.entity.living.animal.Chicken;
+import org.spongepowered.api.entity.living.player.Player;
 import org.spongepowered.api.event.cause.EventContextKeys;
 import org.spongepowered.api.event.CauseStackManager.StackFrame;
 import org.spongepowered.api.event.cause.entity.spawn.SpawnTypes;
@@ -20,9 +22,13 @@ import org.spongepowered.api.data.key.Keys;
 import org.spongepowered.api.data.manipulator.mutable.block.DirectionalData;
 import org.spongepowered.api.plugin.PluginContainer;
 import org.spongepowered.api.scheduler.Task;
+import org.spongepowered.api.text.Text;
 import org.spongepowered.api.util.Direction;
+import org.spongepowered.api.util.rotation.Rotation;
 import org.spongepowered.api.world.Location;
 import org.spongepowered.api.world.World;
+import org.spongepowered.api.world.weather.Weathers;
+
 import com.flowpowered.math.vector.Vector3d;
 
 import java.lang.reflect.Field;
@@ -188,6 +194,23 @@ public class MinecraftService extends MinecraftServiceImplBase {
             responseObserver.onNext(builder.build());
             responseObserver.onCompleted();
         }).name("readCube").submit(plugin);
+    }
+
+    @Override
+    public void testFunc(Point loc, StreamObserver<Empty> responseObserver){
+        Task.builder().execute(() -> {
+            Player player = Sponge.getServer().getPlayer("boopchie").get();
+            Location<World> location = player.getLocation();
+            Location<World> new_loc = location.add(1, 0, 0);
+            Vector3d rot_vec = player.getHeadRotation();
+            rot_vec = rot_vec.add(0, 5, 0);
+            Boolean succ = player.setLocationAndRotation(location, rot_vec);
+            // Boolean succ = player.setLocation(new_loc);
+            World world = Sponge.getServer().getWorlds().iterator().next();
+            world.setWeather(Weathers.CLEAR);
+            responseObserver.onNext(Empty.getDefaultInstance());
+            responseObserver.onCompleted();
+        }).name("testFunc").submit(plugin);
     }
 
     @Override

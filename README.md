@@ -28,7 +28,7 @@ python -m pip install grpcio-tools
 ```
 python -m grpc_tools.protoc -I./ --python_out=./clients/python/ --grpc_python_out=./clients/python/ ./src/main/proto/minecraft.proto
 ```
-The `minecraft_pb2_grpc.py` and `minecraft_pb2.py` should be available in `./clients/python` folder. Or you can place them into the folder in which you place the `mc_render.py` (or any other python script you're working on).
+The `minecraft_pb2_grpc.py` and `minecraft_pb2.py` will be available in `./clients/python/src/main/proto` folder. You can copy them into the folder in which you place the `mc_render.py` (or any other python script you're working on).
 
 ## Build the Minecraft Mod
 Modify the mod:
@@ -38,7 +38,10 @@ Modify the mod:
 ```
 mvn install
 ```
-The `minecraft-rpc-0.0.5.jar` will be available after this. Put this `jar` file inside `./server/mods`
+The `minecraft-rpc-0.0.5.jar` will be available in `target/` after this. Put this `jar` file inside `./server/mods`
+```
+mv target/minecraft-rpc-0.0.5.jar server/mods/
+```
 
 ## Run 
 * Go to `./server`
@@ -52,6 +55,13 @@ java -jar spongevanilla-1.12.2-7.3.0.jar
 This means it's working and the server is ready for commands on port 5001.
 
 Note that if you run `java -jar ./server/spongevanilla-1.12.2-7.3.0.jar` inside the `./` folder, new `eula.txt` and `server.properties` will be generated and applied. So we recommand you not being too lazy to go to `./server` folder :D
+
+## Example script
+To run the example script, run:
+```
+python clients/python/example.py
+```
+You will need to make sure the latest `minecraft_pb2_grpc.py` and `minecraft_pb2.py` generated above are in the same directory as the example script.
 
 # Reference 
 For more information, see [Evocraft](https://github.com/real-itu/Evocraft-py) and the original [Minecraft RPC](https://github.com/real-itu/minecraft-rpc)

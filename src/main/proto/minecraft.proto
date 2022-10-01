@@ -22,6 +22,8 @@ service MinecraftService {
     rpc fillCube (FillCubeRequest) returns (google.protobuf.Empty);
 
     rpc readEntitiesInSphere(Sphere) returns (Entities);  
+
+    rpc testFunc(Point) returns (google.protobuf.Empty);
 }
 
 /** A 3D cube defined by two opposing corners min and max where min.x < max.x, min.y < max.y and min.z < max.z */
