@@ -1,3 +1,10 @@
 target
 .idea
 *.iml
+outputs/*
+*.DS_Store
+*.pyc
+server/*
+!server/mods/*
+!server/server.properties
+!server/minecraft-rpc-0.0.5.jar

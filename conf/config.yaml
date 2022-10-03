@@ -1,0 +1,10 @@
+data:
+  num_samples: 4200
+  data_dir: data
+
+train:
+  lr: 0.001
+  num_updates: 10000
+  log_interval: 1
+  save_interval: 10
+  batch_size: 32

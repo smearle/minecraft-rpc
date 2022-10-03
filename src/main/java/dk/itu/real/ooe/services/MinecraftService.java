@@ -7,6 +7,7 @@ import dk.itu.real.ooe.MinecraftServiceGrpc.MinecraftServiceImplBase;
 import io.grpc.stub.StreamObserver;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
+import org.spongepowered.api.Game;
 import org.spongepowered.api.Sponge;
 import org.spongepowered.api.entity.Entity;
 import org.spongepowered.api.entity.EntityTypes;
@@ -28,6 +29,8 @@ import org.spongepowered.api.util.rotation.Rotation;
 import org.spongepowered.api.world.Location;
 import org.spongepowered.api.world.World;
 import org.spongepowered.api.world.weather.Weathers;
+// import GameRule
+import org.spongepowered.api.world.gamerule.DefaultGameRules;
 
 import com.flowpowered.math.vector.Vector3d;
 
@@ -197,20 +200,50 @@ public class MinecraftService extends MinecraftServiceImplBase {
     }
 
     @Override
-    public void testFunc(Point loc, StreamObserver<Empty> responseObserver){
+    public void initDataGen(Point point, StreamObserver<Empty> responseObserver) {
         Task.builder().execute(() -> {
-            Player player = Sponge.getServer().getPlayer("boopchie").get();
-            Location<World> location = player.getLocation();
-            Location<World> new_loc = location.add(1, 0, 0);
-            Vector3d rot_vec = player.getHeadRotation();
-            rot_vec = rot_vec.add(0, 5, 0);
-            Boolean succ = player.setLocationAndRotation(location, rot_vec);
-            // Boolean succ = player.setLocation(new_loc);
             World world = Sponge.getServer().getWorlds().iterator().next();
-            world.setWeather(Weathers.CLEAR);
+            // Set sunny weather.
+            world.setWeather(Weathers.CLEAR, Long.MAX_VALUE);
+            // Set daytime.
+            world.getProperties().setWorldTime(0);
+            // Turn off daylight cycle.
+            world.getProperties().setGameRule("DO_DAYLIGHT_CYCLE", "false");
+            // Turn off weather cycle.
+            world.getProperties().setGameRule("DO_WEATHER_CYCLE", "false");
             responseObserver.onNext(Empty.getDefaultInstance());
             responseObserver.onCompleted();
-        }).name("testFunc").submit(plugin);
+        }).name("initDataGen").submit(plugin);
+    }
+
+    @Override
+    public void setLoc(Point loc, StreamObserver<Point> responseObserver){
+        Task.builder().execute(() -> {
+            Point.Builder builder = Point.newBuilder();
+            World world = Sponge.getServer().getWorlds().iterator().next();
+            // Get tallest block at location
+            int x = loc.getX();
+            int y = world.getHighestYAt(loc.getX(), loc.getZ());
+            int z = loc.getZ();
+            builder.setX(x).setY(y).setZ(z);
+            Player player = Sponge.getServer().getPlayer("boopchie").get();
+            Location<World> location = new Location<World>(world, x, y, z);
+            // Boolean succ = player.setLocationAndRotation(location, rot_vec);
+            Boolean succ = player.setLocation(location);
+            responseObserver.onNext(builder.build());
+            responseObserver.onCompleted();
+        }).name("setLoc").submit(plugin);
+    }
+
+    @Override
+    public void setRot(Point rot, StreamObserver<Empty> responseObserver){
+        Task.builder().execute(() -> {
+            Player player = Sponge.getServer().getPlayer("boopchie").get();
+            Vector3d rot_vec = new Vector3d(rot.getX(), rot.getY(), rot.getZ());
+            player.setRotation(rot_vec);
+            responseObserver.onNext(Empty.getDefaultInstance());
+            responseObserver.onCompleted();
+        }).name("setRot").submit(plugin);
     }
 
     @Override
