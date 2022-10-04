@@ -44,7 +44,7 @@ def top_left_corner_screenshot(name: str):
 
 
 channel = grpc.insecure_channel('localhost:5001')
-client = src.main.proto.minecraft_pb2_grpc.MinecraftServiceStub(channel)
+client = clients.python.src.main.proto.minecraft_pb2_grpc.MinecraftServiceStub(channel)
 
 def square_spiral(n: int):
     # Parameterize square spiral as on https://math.stackexchange.com/a/3158068
@@ -66,14 +66,6 @@ def square_spiral(n: int):
     else: raise Exception
     return int(x), int(y)
 
-
-def plot_voxels(voxels: np.ndarray):
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
-    voxels = voxels.transpose(2, 0, 1)
-    ax.voxels(voxels, edgecolor="k")
-    plt.show()
-    plt.close()
 
 
 def cube_to_voxels(cube: Cube, shape: tuple, min: tuple):

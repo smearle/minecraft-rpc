@@ -1,10 +1,31 @@
+save_dir: None
+
 data:
-  num_samples: 4200
+  name: ims_to_vox
+  num_samples: 400
   data_dir: data
+  pct_train: 0.8
+  pct_val: 0.1
+  pct_test: 0.1
+  train_data: data/train_data.pt
+  train_labels: data/train_labels.pt
+  val_data: data/val_data.pt
+  val_labels: data/val_labels.pt
+  test_data: data/test_data.pt
+  test_labels: data/test_labels.pt
 
 train:
+  load: true
   lr: 0.001
   num_updates: 10000
   log_interval: 1
   save_interval: 10
   batch_size: 32
+
+model:
+  name: cnn_dense
+
+optimizer:
+
+evaluate:
+  val: False
