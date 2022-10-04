@@ -9,8 +9,8 @@ import pyautogui
 import pyscreenshot as ImageGrab
 import pygetwindow
 
-import clients.python.src.main.proto.minecraft_pb2_grpc
-from clients.python.src.main.proto.minecraft_pb2 import *
+import src.main.proto.minecraft_pb2_grpc
+from src.main.proto.minecraft_pb2 import *
 
 BBOX = (0, 66, 853, 544)  # For 16" MBP, M1.
 # bbox = pyautogui.locateOnScreen('mc.png')
@@ -44,7 +44,7 @@ def top_left_corner_screenshot(name: str):
 
 
 channel = grpc.insecure_channel('localhost:5001')
-client = clients.python.src.main.proto.minecraft_pb2_grpc.MinecraftServiceStub(channel)
+client = src.main.proto.minecraft_pb2_grpc.MinecraftServiceStub(channel)
 
 def square_spiral(n: int):
     # Parameterize square spiral as on https://math.stackexchange.com/a/3158068
