@@ -1,1 +1,6 @@
 matplotlib
+PyGetWindow
+pyobjc-framework-Quartz
+pyscreenshot
+
+# install hydra using: pip install hydra-core --upgrade
