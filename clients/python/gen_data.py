@@ -5,16 +5,15 @@ import time
 import grpc
 import matplotlib.pyplot as plt
 import numpy as np
-import pyautogui
 import pyscreenshot as ImageGrab
 import pygetwindow
 
 import src.main.proto.minecraft_pb2_grpc
 from src.main.proto.minecraft_pb2 import *
+from utils import square_spiral
 
 BBOX = (0, 66, 853, 544)  # For 16" MBP, M1.
 # bbox = pyautogui.locateOnScreen('mc.png')
-# TT()
 
 active_window = pygetwindow.getActiveWindow()
 # Continue when user enters "y"
@@ -46,27 +45,6 @@ def top_left_corner_screenshot(name: str):
 channel = grpc.insecure_channel('localhost:5001')
 client = src.main.proto.minecraft_pb2_grpc.MinecraftServiceStub(channel)
 
-def square_spiral(n: int):
-    # Parameterize square spiral as on https://math.stackexchange.com/a/3158068
-    flr_sqrt_n = math.floor(math.sqrt(n))
-    n_hat = flr_sqrt_n if flr_sqrt_n % 2 == 0 else flr_sqrt_n - 1
-    n_hat_sqr = n_hat ** 2
-    if n_hat_sqr <= n <= n_hat_sqr + n_hat:
-        x = - n_hat / 2 + n - n_hat_sqr
-        y = n_hat / 2
-    elif n_hat_sqr + n_hat < n <= n_hat_sqr + 2 * n_hat + 1:
-        x = n_hat / 2
-        y = n_hat / 2 - n + n_hat_sqr + n_hat
-    elif n_hat_sqr + 2 * n_hat + 1 < n <= n_hat_sqr + 3 * n_hat + 2:
-        x = n_hat / 2 - n + n_hat_sqr + 2 * n_hat + 1
-        y = - n_hat / 2 - 1
-    elif n_hat_sqr + 3 * n_hat + 2 < n <= n_hat_sqr + 4 * n_hat + 3:
-        x = - n_hat / 2 - 1
-        y = - n_hat / 2 - 1 + n - n_hat_sqr - 3 * n_hat - 2
-    else: raise Exception
-    return int(x), int(y)
-
-
 
 def cube_to_voxels(cube: Cube, shape: tuple, min: tuple):
     voxels = np.zeros(shape)
@@ -89,7 +67,7 @@ y = 0  # dummy height variable
 forward_dist = 5
 while True:
     if i % 100 == 0:
-        # FIXME: hack to keep weather clear and daylight on, since this functiondoes not seem to have a lasting effect.
+        # FIXME: hack to keep weather clear and daylight on, since this function does not seem to have a lasting effect.
         client.initDataGen(Point(x=0, y=0, z=0))  # dummy point variable
     x, z = square_spiral(i)
     x *= 20
