@@ -8,43 +8,17 @@ from PIL import Image
 import hydra
 import numpy as np
 from omegaconf import DictConfig, OmegaConf
+from torchinfo import summary
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 import torch as th
 from tqdm import tqdm
 import yaml
-from render import plot_voxels
+from render import plot_pred_trg, plot_voxels
 
-from data import ImsVoxelsDataset, sort_data
+from data import CoordsVoxelsDataset, ImsVoxelsDataset, sort_data
+from models import *
 from utils import get_exp_name
-
-
-# Define the model, mapping RGB images to 3D binary encodings
-class Model(th.nn.Module):
-    def __init__(self, in_shape, out_shape, cfg: DictConfig):    
-        super().__init__()
-        self.out_shape = out_shape
-        self.conv1 = th.nn.Conv2d(4, 6, 5)
-        self.pool = th.nn.MaxPool2d(2, 2)
-        self.conv2 = th.nn.Conv2d(6, 16, 5)
-        self.conv3 = th.nn.Conv2d(16, 8, 5)
-        fc_shape = prod(self.pool(self.conv3(self.pool(self.conv2(self.pool(self.conv1(th.zeros(1, *in_shape))))))).shape[1:])
-        self.fc1 = th.nn.Linear(fc_shape, 120)
-        self.fc2 = th.nn.Linear(120, 84)
-        out_size_flat = prod(out_shape)
-        self.fc3 = th.nn.Linear(84, out_size_flat)
-    
-    def forward(self, x):
-        b = x.shape[0]
-        x = self.pool(th.nn.functional.relu(self.conv1(x)))
-        x = self.pool(th.nn.functional.relu(self.conv2(x)))
-        x = self.pool(th.nn.functional.relu(self.conv3(x)))
-        x = x.reshape(b, -1)
-        x = th.nn.functional.relu(self.fc1(x))
-        x = th.nn.functional.relu(self.fc2(x))
-        x = th.nn.functional.sigmoid(self.fc3(x))
-        x = x.view(-1, *self.out_shape)
-        return x
 
 
 def mse_loss(preds, targets):
@@ -108,19 +82,24 @@ def mse_loss(preds, targets):
 @hydra.main(version_base=None, config_path="conf", config_name="config")
 def main(cfg: DictConfig) -> None:
     """Main entrypoint for the project"""
+    Model = globals()[cfg.model.name]
     load = cfg.train.load or cfg.evaluate.val
     save_dir = cfg.save_dir = os.path.join("saves", get_exp_name(cfg))
     if not os.path.exists(os.path.join(cfg.data.data_dir, "test_data_idxs.json")):
         sort_data(cfg)
     # data_dir = load_data(cfg)        
     # ims, voxels = data_dir["data"], data_dir["labels"]
-    train_data = ImsVoxelsDataset(cfg=cfg, name="train")
+    Dataset = globals()[cfg.data.dataset]
+    train_data = Dataset(cfg=cfg, name="train")
     train_dataloader = DataLoader(train_data, batch_size=cfg.train.batch_size, shuffle=True)
     train_features, train_labels = next(iter(train_dataloader))
     model = Model(train_features[0].shape, train_labels[0].shape, cfg)
+    # Print model stats with torchinfo
+    summary(model, input_data=th.zeros(train_features[0:1].shape))
+
     optimizer = th.optim.Adam(model.parameters(), lr=cfg.train.lr)
 
-    if load is True:
+    if load is True and os.path.exists(os.path.join(save_dir, "model.pt")):
         update_i = yaml.load(open(os.path.join(save_dir, "log.yaml"), "r"), Loader=yaml.FullLoader)["update_i"]
         model.load_state_dict(th.load(os.path.join(cfg.save_dir, "model.pt")))
         optimizer.load_state_dict(th.load(os.path.join(cfg.save_dir, "optimizer.pt")))
@@ -135,9 +114,9 @@ def main(cfg: DictConfig) -> None:
         return
 
 
-    if cfg.train.load is False:
+    if cfg.train.load is False or not os.path.exists(os.path.join(save_dir, "model.pt")):
         if os.path.exists(save_dir):
-            shutil.rmtree(save_dir)
+            shutil.rmtree(save_dir, ignore_errors=True)
         os.makedirs(save_dir, exist_ok=True)
 
     # Initialize tensorboard writer
@@ -168,7 +147,7 @@ def main(cfg: DictConfig) -> None:
             param.data -= cfg.train.lr * param.grad.data
         
         if (update_i + 1) % cfg.train.log_interval == 0:
-            print(f'Epoch [{update_i + 1}/{cfg.train.num_updates}], Loss: {loss.item():.4e}')
+            print(f'Update [{update_i + 1}/{cfg.train.num_updates}], Loss: {loss.item():.4e}')
 
         # Save model and optimizer
         if (update_i + 1) % cfg.train.save_interval == 0:
@@ -204,38 +183,44 @@ def evaluate(model, update_i, cfg):
 
     # data_dir = load_data(cfg)
 
-    def eval_data(name, model):
-        data = ImsVoxelsDataset(cfg=cfg, name=name)
-        dataloader = DataLoader(data, batch_size=cfg.evaluate.batch_size, shuffle=True)
-        # data = data_dir[f"{name}_data"]
-        # if data.shape[0] == 0:
-            # return
-        # labels = data_dir[f"{name}_labels"]
-        features, labels = next(iter(dataloader))
-
-        # TODO: batch this properly
-
-        model.eval()
-        with th.no_grad():
-            # Evaluate the model
-            preds = model(features)
-            loss = mse_loss(preds, labels)
-            # Visualize the results
-            for i in range(min(10, len(features))):
-                img = features[i].cpu().numpy().transpose(1, 2, 0)
-                pred = preds[i].cpu().numpy()
-                pred = np.round(pred)
-                img = img.astype(np.uint8)
-                img = Image.fromarray(img)
-                img.save(os.path.join(results_dir, f"{name}_im_{i}.png"))
-                label = labels[i].cpu().numpy()
-                plot_voxels(pred, label, save_path=os.path.join(results_dir, f"{name}_pred_trg_{i}.png"))
-                pred = preds[i].cpu().numpy()
-
-            print(f"{name} loss: {loss.item()}")
-
     for name in ["train", "val", "test"]:
-        eval_data(name, model)
+        eval_data(name, model, cfg, results_dir=results_dir)
+
+
+def eval_data(name, model, cfg, results_dir=None):
+    Dataset = globals()[cfg.data.dataset]
+    data = Dataset(cfg=cfg, name=name)
+    dataloader = DataLoader(data, batch_size=cfg.evaluate.batch_size, shuffle=True)
+    # data = data_dir[f"{name}_data"]
+    # if data.shape[0] == 0:
+        # return
+    # labels = data_dir[f"{name}_labels"]
+    features, labels = next(iter(dataloader))
+
+    # TODO: batch this properly
+
+    model.eval()
+    with th.no_grad():
+        # Evaluate the model
+        preds = model(features)
+        loss = mse_loss(preds, labels)
+        # Visualize the results
+        for i in range(min(10, len(features))):
+            if cfg.data.dataset == "ImsVoxelsDataset":
+                img = features[i].cpu().numpy().transpose(1, 2, 0)
+                img = img.astype(np.uint8)
+            else:
+                img = None
+            # img = Image.fromarray(img)
+            pred = preds[i].cpu().numpy()
+            pred = np.round(pred)
+            # img.save(os.path.join(results_dir, f"{name}_im_{i}.png"))
+            label = labels[i].cpu().numpy()
+            # plot_voxels(pred, label, save_path=os.path.join(results_dir, f"{name}_pred_trg_{i}.png"))
+            plot_pred_trg(pred=pred, trg=label, img=img, save_path=os.path.join(results_dir, f"{name}_pred_trg_{i}.png"))
+            pred = preds[i].cpu().numpy()
+
+        print(f"{name} loss: {loss.item()}")
 
 if __name__ == "__main__":
     main()
