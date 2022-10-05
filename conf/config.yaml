@@ -1,18 +1,19 @@
+exp_name: 0
 save_dir: None
 
 data:
   name: ims_to_vox
-  num_samples: 400
+  num_samples: 4000
   data_dir: data
   pct_train: 0.8
   pct_val: 0.1
   pct_test: 0.1
-  train_data: data/train_data.pt
-  train_labels: data/train_labels.pt
-  val_data: data/val_data.pt
-  val_labels: data/val_labels.pt
-  test_data: data/test_data.pt
-  test_labels: data/test_labels.pt
+  # train_data: data/train_data.pt
+  # train_labels: data/train_labels.pt
+  # val_data: data/val_data.pt
+  # val_labels: data/val_labels.pt
+  # test_data: data/test_data.pt
+  # test_labels: data/test_labels.pt
 
 train:
   load: true
@@ -29,3 +30,4 @@ optimizer:
 
 evaluate:
   val: False
+  batch_size: 10
