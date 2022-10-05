@@ -16,7 +16,9 @@ python clients/python/data_gen.py
 ```
 This will generate a dataset of [screenshot <--> block layout] pairs by teleporting your player around the map in a square spiral, recording a chunk of blocks roughly in front of you, then taking a screenshot.
 
-The latter is done very hackishly via screen captures. You will need to tweak `BBOX` in this script to ensure the screenshots contain your Minecraft window, which you will want to stick in, e.g., the top-left corner of your screen. You may also want to change `options.txt`, editing the line `pauseOnLostFocus:false` so that you can change focus from the Minecraft client while collecting data, without bringing up the pause screen.
+The latter is done very hackishly via screen captures. You will need to tweak `BBOX` in this script to ensure the screenshots contain your Minecraft window, which you will want to stick in, e.g., the top-left corner of your screen. 
+
+Change `options.text`, (in your minecraft directory. Mac OS: `~/Library/Application Support/minecraft/options.txt`), settings `OverrideWidth:512` and `OverrideHeight:512` so that we collect screenshots of an approriate size. You'll probably also want to edit the line `pauseOnLostFocus:false` so that you can change focus from the Minecraft client while collecting data, without bringing up the pause screen.
 
 You will also need to change the name of the player being teleported around in `MinecraftRPC.java` to match your player name (or change your player name to "boopchie"). See "Build the Minecraft Mod" below.
 
