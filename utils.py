@@ -1,4 +1,4 @@
-from clients.python.utils import square_spiral
+from clients.python.utils import idx_to_x_z_rot
 import math
 
 def get_exp_name(cfg):
