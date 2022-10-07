@@ -85,8 +85,12 @@ def main(cfg: DictConfig) -> None:
     Model = globals()[cfg.model.name]
     load = cfg.train.load or cfg.evaluate.val
     save_dir = cfg.save_dir = os.path.join("saves", get_exp_name(cfg))
-    if not os.path.exists(os.path.join(cfg.data.data_dir, "test_data_idxs.json")):
-        sort_data(cfg)
+    # if not os.path.exists(os.path.join(cfg.data.data_dir, "test_data_idxs.json")):
+    # Time this function:
+    import time
+    start = time.time()
+    sort_data(cfg)
+    print(f"Time to sort data: {time.time() - start}")
     # data_dir = load_data(cfg)        
     # ims, voxels = data_dir["data"], data_dir["labels"]
     Dataset = globals()[cfg.data.dataset]
@@ -171,6 +175,12 @@ def main(cfg: DictConfig) -> None:
             if os.path.exists(last_optimizer_path):
                 os.remove(last_optimizer_path)
 
+        # Evaluate
+        if (update_i + 1) % cfg.train.eval_interval == 0:
+            val_loss = eval_data("val", model, cfg, results_dir=None)
+            # Log to tensorboard
+            writer.add_scalar("val/loss", val_loss, update_i)
+
 
 def evaluate(model, update_i, cfg):
 
@@ -195,6 +205,8 @@ def eval_data(name, model, cfg, results_dir=None):
     # if data.shape[0] == 0:
         # return
     # labels = data_dir[f"{name}_labels"]
+    if len(dataloader) == 0:
+        return
     features, labels = next(iter(dataloader))
 
     # TODO: batch this properly
@@ -204,23 +216,26 @@ def eval_data(name, model, cfg, results_dir=None):
         # Evaluate the model
         preds = model(features)
         loss = mse_loss(preds, labels)
-        # Visualize the results
-        for i in range(min(10, len(features))):
-            if cfg.data.dataset == "ImsVoxelsDataset":
-                img = features[i].cpu().numpy().transpose(1, 2, 0)
-                img = img.astype(np.uint8)
-            else:
-                img = None
-            # img = Image.fromarray(img)
-            pred = preds[i].cpu().numpy()
-            pred = np.round(pred)
-            # img.save(os.path.join(results_dir, f"{name}_im_{i}.png"))
-            label = labels[i].cpu().numpy()
-            # plot_voxels(pred, label, save_path=os.path.join(results_dir, f"{name}_pred_trg_{i}.png"))
-            plot_pred_trg(pred=pred, trg=label, img=img, save_path=os.path.join(results_dir, f"{name}_pred_trg_{i}.png"))
-            pred = preds[i].cpu().numpy()
+        if results_dir is not None:
 
-        print(f"{name} loss: {loss.item()}")
+            # Visualize the results
+            for i in range(min(10, len(features))):
+                if cfg.data.dataset == "ImsVoxelsDataset":
+                    img = features[i].cpu().numpy().transpose(1, 2, 0)
+                    img = img.astype(np.uint8)
+                else:
+                    img = None
+                # img = Image.fromarray(img)
+                pred = preds[i].cpu().numpy()
+                pred = np.round(pred)
+                # img.save(os.path.join(results_dir, f"{name}_im_{i}.png"))
+                label = labels[i].cpu().numpy()
+                # plot_voxels(pred, label, save_path=os.path.join(results_dir, f"{name}_pred_trg_{i}.png"))
+                plot_pred_trg(pred=pred, trg=label, img=img, save_path=os.path.join(results_dir, f"{name}_pred_trg_{i}.png"))
+                pred = preds[i].cpu().numpy()
+
+    print(f"{name} loss: {loss.item()}")
+    return loss
 
 if __name__ == "__main__":
     main()

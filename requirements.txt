@@ -6,3 +6,4 @@ pyobjc-framework-Quartz        # M1 mac only?
 pyscreenshot
 
 # install hydra using: pip install hydra-core --upgrade
+torchinfo

@@ -18,7 +18,9 @@ This will generate a dataset of [screenshot <--> block layout] pairs by teleport
 
 The latter is done very hackishly via screen captures. You will need to tweak `BBOX` in this script to ensure the screenshots contain your Minecraft window, which you will want to stick in, e.g., the top-left corner of your screen. For Mac users, you can press `cmd`+`shift`+`4` to enter screenshot mode, then put the mouse at the bottom right of the Minecraft window to have the coordinates in pixels displayed.
 
-You may also want to change `options.txt`, editing the line `pauseOnLostFocus:false` so that you can change focus from the Minecraft client while collecting data, without bringing up the pause screen.
+
+
+Change `options.text`, (in your minecraft directory. Mac OS: `~/Library/Application Support/minecraft/options.txt`), settings `OverrideWidth:512` and `OverrideHeight:512` so that we collect screenshots of an approriate size. You'll probably also want to edit the line `pauseOnLostFocus:false` so that you can change focus from the Minecraft client while collecting data, without bringing up the pause screen.
 
 You will also need to change the name of the player being teleported around in `MinecraftRPC.java` to match your player name (or change your player name to "boopchie"). See "Build the Minecraft Mod" below.
 

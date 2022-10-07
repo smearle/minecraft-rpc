@@ -206,7 +206,7 @@ public class MinecraftService extends MinecraftServiceImplBase {
             // Set sunny weather.
             world.setWeather(Weathers.CLEAR, Long.MAX_VALUE);
             // Set daytime.
-            world.getProperties().setWorldTime(0);
+            world.getProperties().setWorldTime(1000);
             // Turn off daylight cycle.
             world.getProperties().setGameRule("DO_DAYLIGHT_CYCLE", "false");
             // Turn off weather cycle.
@@ -214,6 +214,21 @@ public class MinecraftService extends MinecraftServiceImplBase {
             responseObserver.onNext(Empty.getDefaultInstance());
             responseObserver.onCompleted();
         }).name("initDataGen").submit(plugin);
+    }
+
+    @Override
+    public void getHighestYAt(Point loc, StreamObserver<Point> responseObserver){
+        Task.builder().execute(() -> {
+            Point.Builder builder = Point.newBuilder();
+            World world = Sponge.getServer().getWorlds().iterator().next();
+            // Get tallest block at location
+            int x = loc.getX();
+            int y = world.getHighestYAt(loc.getX(), loc.getZ());
+            int z = loc.getZ();
+            builder.setX(x).setY(y).setZ(z);
+            responseObserver.onNext(builder.build());
+            responseObserver.onCompleted();
+        }).name("setLoc").submit(plugin);
     }
 
     @Override

@@ -28,6 +28,8 @@ service MinecraftService {
     rpc setRot(Point) returns (google.protobuf.Empty);
 
     rpc initDataGen(Point) returns (google.protobuf.Empty);
+
+    rpc getHighestYAt(Point) returns (Point);
 }
 
 /** A 3D cube defined by two opposing corners min and max where min.x < max.x, min.y < max.y and min.z < max.z */
