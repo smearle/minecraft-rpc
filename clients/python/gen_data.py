@@ -12,6 +12,12 @@ import pyscreenshot as ImageGrab
 import pygetwindow
 from utils import square_spiral, get_vox_xz_from_view
 
+# import sys
+# sys.path.append('../..')
+
+from utils import square_spiral
+# from clients.python.utils import square_spiral
+
 import src.main.proto.minecraft_pb2_grpc
 from src.main.proto.minecraft_pb2 import *
 from utils import idx_to_x_z_rot
@@ -113,7 +119,7 @@ def get_screenies(client, num_samples, load: bool = True):
     #     time.sleep(1)
     #     active_window = pygetwindow.getActiveWindow()
 
-    # print("Minecraft is active window!")
+    print("Minecraft is active window now!")
     # User pyautogui to take a screenshot of the Minecraft window
 
     # def spoof_window_screenshot():
