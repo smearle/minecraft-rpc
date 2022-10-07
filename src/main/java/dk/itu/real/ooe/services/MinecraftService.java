@@ -226,7 +226,7 @@ public class MinecraftService extends MinecraftServiceImplBase {
             int y = world.getHighestYAt(loc.getX(), loc.getZ());
             int z = loc.getZ();
             builder.setX(x).setY(y).setZ(z);
-            Player player = Sponge.getServer().getPlayer("boopchie").get();
+            Player player = Sponge.getServer().getPlayer("GIL_Bert").get();
             Location<World> location = new Location<World>(world, x, y, z);
             // Boolean succ = player.setLocationAndRotation(location, rot_vec);
             Boolean succ = player.setLocation(location);
@@ -238,7 +238,7 @@ public class MinecraftService extends MinecraftServiceImplBase {
     @Override
     public void setRot(Point rot, StreamObserver<Empty> responseObserver){
         Task.builder().execute(() -> {
-            Player player = Sponge.getServer().getPlayer("boopchie").get();
+            Player player = Sponge.getServer().getPlayer("GIL_Bert").get();
             Vector3d rot_vec = new Vector3d(rot.getX(), rot.getY(), rot.getZ());
             player.setRotation(rot_vec);
             responseObserver.onNext(Empty.getDefaultInstance());
