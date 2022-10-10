@@ -24,6 +24,8 @@ from utils import get_exp_name
 def mse_loss(preds, targets):
     return th.nn.functional.mse_loss(preds, targets)
 
+def cross_entropy_loss(preds, targets):
+    return th.nn.functional.cross_entropy(preds, targets)
 
 
 # def load_data(cfg):
@@ -136,7 +138,8 @@ def main(cfg: DictConfig) -> None:
         # Forward pass
         outputs = model(ims_batch)
 
-        loss = mse_loss(outputs, voxels_batch)
+        # loss = mse_loss(outputs, voxels_batch)
+        loss = cross_entropy_loss(outputs, voxels_batch)
         writer.add_scalar("train/loss", loss.item(), update_i)
         
         # Backward and optimize
@@ -179,7 +182,8 @@ def main(cfg: DictConfig) -> None:
         if (update_i + 1) % cfg.train.eval_interval == 0:
             val_loss = eval_data("val", model, cfg, results_dir=None)
             # Log to tensorboard
-            writer.add_scalar("val/loss", val_loss, update_i)
+            if val_loss is not None:
+                writer.add_scalar("val/loss", val_loss, update_i)
 
 
 def evaluate(model, update_i, cfg):
@@ -200,6 +204,8 @@ def evaluate(model, update_i, cfg):
 def eval_data(name, model, cfg, results_dir=None):
     Dataset = globals()[cfg.data.dataset]
     data = Dataset(cfg=cfg, name=name)
+    if len(data) == 0:
+        return None
     dataloader = DataLoader(data, batch_size=cfg.evaluate.batch_size, shuffle=True)
     # data = data_dir[f"{name}_data"]
     # if data.shape[0] == 0:
@@ -215,7 +221,8 @@ def eval_data(name, model, cfg, results_dir=None):
     with th.no_grad():
         # Evaluate the model
         preds = model(features)
-        loss = mse_loss(preds, labels)
+        # loss = mse_loss(preds, labels)
+        loss = cross_entropy_loss(preds, labels)
         if results_dir is not None:
 
             # Visualize the results

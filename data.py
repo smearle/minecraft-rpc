@@ -1,16 +1,18 @@
 import json
 import os
 from pdb import set_trace as TT
+
+from einops import rearrange
+from matplotlib import pyplot as plt
 import numpy as np
 import pandas as pd
 from PIL import Image
 import torch as th
 from torch.utils.data import Dataset
 from torchvision.io import read_image
-from clients.python.utils import get_vox_xz_from_view
 
+from clients.python.utils import get_vox_xz_from_view
 from utils import idx_to_x_z_rot
-from matplotlib import pyplot as plt
 
 
 def sort_data(cfg):
@@ -74,7 +76,9 @@ class ImsVoxelsDataset(Dataset):
 
         image = read_image(img_path)
         vox_path = os.path.join(self.vox_dir, f"{str(vox_idx)}.npy")
-        voxels = th.Tensor(np.load(vox_path))
+        voxels = th.Tensor(np.load(vox_path)).long()
+        voxels = th.eye(256)[voxels]
+        voxels = rearrange(voxels, "x y z c -> c x y z")
         # voxels = th.rot90(voxels, k=rot // 90, dims=(0, 2))
 
         # Rotate the chunk of voxels to be consistent with the rotation of the screenshot
@@ -137,5 +141,7 @@ class VoxelsDataset(Dataset):
 
     def __getitem__(self, idx):
         vox_path = os.path.join(self.vox_dir, f"{self.data_idxs[str(idx)]}.npy")
-        voxels = th.Tensor(np.load(vox_path)).float()
+        voxels = th.Tensor(np.load(vox_path), dtype=th.int64)
+        voxels = th.eye(256)[voxels]
+        voxels = rearrange(voxels, "x y z c -> c x y z")
         return voxels, voxels

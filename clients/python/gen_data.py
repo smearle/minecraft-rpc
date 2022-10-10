@@ -1,3 +1,4 @@
+from math import cos, sin
 import json
 import math
 import os
@@ -9,7 +10,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import pyscreenshot as ImageGrab
-import pygetwindow
 from utils import square_spiral, get_vox_xz_from_view
 
 import src.main.proto.minecraft_pb2_grpc
@@ -17,17 +17,23 @@ from src.main.proto.minecraft_pb2 import *
 from utils import idx_to_x_z_rot
 
 
-def top_left_corner_screenshot(name: str, bbox):
+SCREENSHOT_SIZE = (512, 512)
+BBOX_OFFSET = (0, 66)  # For 16" M1 MacBook Pro
+BBOX = (BBOX_OFFSET[0], BBOX_OFFSET[1], BBOX_OFFSET[0] + SCREENSHOT_SIZE[0], BBOX_OFFSET[1] + SCREENSHOT_SIZE[1])
+
+
+def top_left_corner_screenshot(name: str, bbox: tuple, save_dir: str = "screenshots"):
     im = ImageGrab.grab(bbox)
     # Save image to file
-    im.save(os.path.join("data", "screenshots", f"{name}.png"))
+    im.save(os.path.join("data", save_dir, f"{name}.png"))
 
 
 def cube_to_voxels(cube: Cube, shape: tuple, min_xyz: tuple):
-    voxels = np.zeros(shape)
+    voxels = np.zeros(shape, dtype=np.uint8)
     for block in cube.blocks:
-        if block.type != AIR:
-            voxels[block.position.x - min_xyz[0], block.position.y - min_xyz[1], block.position.z - min_xyz[2]] = 1
+        # if block.type != AIR:
+        #     voxels[block.position.x - min_xyz[0], block.position.y - min_xyz[1], block.position.z - min_xyz[2]] = 1
+        voxels[block.position.x - min_xyz[0], block.position.y - min_xyz[1], block.position.z - min_xyz[2]] = block.type
     return voxels
 
 
@@ -83,20 +89,76 @@ def get_voxel_chunks(client, num_samples, load: bool = True):
         json.dump({"curr_i": i}, f)
 
 
-def get_screenies(client, num_samples, load: bool = True):
-    """Boopchie does a tourism."""
-    chunk_shape = (20, 10, 20)
+def get_nerf_screenies(client, load: bool = False, center: tuple = (0, 0, 0)):
+    "Get some angles surrounding a central chunk of land, to be rendered by a NeRF."
+    #TODO: Figure out camera focal length, principal point, anything else required by NeRF.
 
-    SCREENSHOT_SIZE = (512, 512)
-    BBOX_OFFSET = (0, 66)  # For 16" M1 MacBook Pro
-    BBOX = (BBOX_OFFSET[0], BBOX_OFFSET[1], BBOX_OFFSET[0] + SCREENSHOT_SIZE[0], BBOX_OFFSET[1] + SCREENSHOT_SIZE[1])
-    # bbox = pyautogui.locateOnScreen('mc.png')
-
-    active_window = pygetwindow.getActiveWindow()
     # Continue when user enters "y"
-    input("Put the Minecraft window in the top corner of the screen (do not scale it!). Enter the server (localhost) and " +
-    " enter camera mode (F1). Press enter to continue...")
-    print("Now change focus to the Minecraft window. (User, e.g. alt + tab. Do not move the window!)")
+    # input("Put the Minecraft window in the top corner of the screen (do not scale it!). Enter the server (localhost) and " +
+    # " enter camera mode (F1). Press enter to continue...")
+    # print("Now change focus to the Minecraft window. (User, e.g. alt + tab. Do not move the window!)")
+
+    # if load:
+    #     with open("data/screenshots_prog.json", "r") as f:
+    #         i = json.load(f)["curr_i"]
+    #     scrn_coords = pd.read_csv("data/screenshot_coords.csv", index_col=0)
+    #     vox_coords = pd.read_csv("data/vox_coords.csv", index_col=0)
+    # else:
+    i = 0
+    scrn_coords = pd.DataFrame(columns=["x", "y", "z", "rot"])
+    num_pie_slices = 36
+    radius = 20
+    frames = []
+    transforms = {"frames": frames}
+
+    y = 0  # dummy height variable
+    for i in range(num_pie_slices):
+        rot_y = 360 / num_pie_slices * i
+        rot_y_rad = rot_y * math.pi / 180
+        rot_y_deg = int(rot_y)
+        if i % 100 == 0:
+            # FIXME: hack to keep weather clear and daylight on, since this function does not seem to have a lasting effect.
+            client.initDataGen(Point(x=0, y=0, z=0))  # dummy point variable
+        x, z = sin(rot_y_rad) * radius, cos(rot_y_rad) * radius
+        x += center[0]
+        z += center[2]
+        x, z = int(x), int(z)
+        loc = client.setLoc(Point(x=x, y=y, z=z))
+        client.setRot(Point(x=0, y=180-rot_y_deg, z=0))
+        assert loc.x == x and loc.z == z
+        y = loc.y
+        scrn_coords.loc[i] = [x, y, z, rot_y]
+            # Save dataframe to file
+            # TODO: Append to the file instead of overwriting
+        top_left_corner_screenshot(f"{i}", bbox=BBOX, save_dir="nerf_screenshots")
+        # Define transform matrix taking into account the rotation and translation of the camera
+        transform_matrix = [
+            [cos(rot_y_rad), 0, -sin(rot_y_rad), x],
+            [sin(rot_y_rad), 0, cos(rot_y_rad), z],
+            [0, 1, 0, y],
+            [0, 0, 0, 1]
+        ]
+        frames.append({
+            "file_path": os.path.join("nerf_screenshots", f"{i}"),
+            "transform_matrix": transform_matrix,
+        })
+        print(f"Saved sreenshot {i}, location {x}, {y}, {z}")
+        i += 1
+    {"curr_i": i}
+    scrn_coords.to_csv(os.path.join("data", "nerf_screenshot_coords.csv"))
+    print(f"Saved {i + 1} samples")
+    # Save transforms matrix
+    with open(os.path.join("data", "transforms.json"), "w") as f:
+        json.dump(transforms, f, indent=4)
+    # with open("data/nerf_screenshots_prog.json", "w") as f:
+    #     json.dump({"curr_i": i}, f)
+
+
+
+def get_screenies(client, num_samples, load: bool = True):
+    """Tourism. Teleport the player around the map in a square spiral pattern, taking screenshots and recording 
+    corresponding chunks of voxels."""
+    chunk_shape = (20, 10, 20)
 
     if load:
         with open("data/screenshots_prog.json", "r") as f:
@@ -167,14 +229,14 @@ def get_screenies(client, num_samples, load: bool = True):
             scrn_coords.to_csv(os.path.join("data", "screenshot_coords.csv"))
             vox_coords.to_csv(os.path.join("data", "vox_coords.csv"))
             print(f"Saved {i + 1} samples")
+            with open("data/screenshots_prog.json", "w") as f:
+                json.dump({"curr_i": i}, f)
         # plot_voxels(voxels)
         np.save(os.path.join("data", "voxels", f"{i}.npy"), voxels)
         top_left_corner_screenshot(f"{i}", bbox=BBOX)
         print(f"Saved sreenshot {i}, location {x}, {y}, {z}")
         i += 1
     {"curr_i": i}
-    with open("data/screenshots_prog.json", "w") as f:
-        json.dump({"curr_i": i}, f)
 
 
 def main(mode: str = "screenies", num_samples: int = 1000, load: bool = True):
@@ -184,9 +246,11 @@ def main(mode: str = "screenies", num_samples: int = 1000, load: bool = True):
     #  We do take all voxel samples, though.
     if mode == "screenies":
         get_screenies(client=client, num_samples=num_samples, load=load)
+    elif mode == "nerf":
+        get_nerf_screenies(client=client, load=load)
     # elif mode == "voxels":
     #     get_voxel_chunks(client, num_samples, load)
-    # else:
+    else:
         raise ValueError("Invalid mode")
 
 

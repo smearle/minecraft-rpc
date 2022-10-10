@@ -10,15 +10,17 @@ class ConvDense(th.nn.Module):
     def __init__(self, in_shape, out_shape, cfg: DictConfig):    
         super().__init__()
         self.out_shape = out_shape
+        n_hid_1 = 512
+        n_hid_2 = 512
         self.conv1 = th.nn.Conv2d(4, 6, 5)
         self.pool = th.nn.MaxPool2d(2, 2)
         self.conv2 = th.nn.Conv2d(6, 16, 5)
         self.conv3 = th.nn.Conv2d(16, 8, 5)
         fc_shape = prod(self.pool(self.conv3(self.pool(self.conv2(self.pool(self.conv1(th.zeros(1, *in_shape))))))).shape[1:])
-        self.fc1 = th.nn.Linear(fc_shape, 120)
-        self.fc2 = th.nn.Linear(120, 84)
+        self.fc1 = th.nn.Linear(fc_shape, n_hid_1)
+        self.fc2 = th.nn.Linear(n_hid_1, n_hid_2)
         out_size_flat = prod(out_shape)
-        self.fc3 = th.nn.Linear(84, out_size_flat)
+        self.fc3 = th.nn.Linear(n_hid_2, out_size_flat)
     
     def forward(self, x):
         b = x.shape[0]
@@ -28,8 +30,9 @@ class ConvDense(th.nn.Module):
         x = x.reshape(b, -1)
         x = th.nn.functional.relu(self.fc1(x))
         x = th.nn.functional.relu(self.fc2(x))
-        x = th.nn.functional.sigmoid(self.fc3(x))
+        x = self.fc3(x)
         x = x.view(-1, *self.out_shape)
+        x = th.nn.functional.softmax(x, dim=1)
         return x
         
 class Dense(th.nn.Module):

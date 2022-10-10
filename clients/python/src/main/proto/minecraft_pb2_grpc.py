@@ -61,6 +61,11 @@ class MinecraftServiceStub(object):
         request_serializer=src_dot_main_dot_proto_dot_minecraft__pb2.Point.SerializeToString,
         response_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
         )
+    self.getHighestYAt = channel.unary_unary(
+        '/dk.itu.real.ooe.MinecraftService/getHighestYAt',
+        request_serializer=src_dot_main_dot_proto_dot_minecraft__pb2.Point.SerializeToString,
+        response_deserializer=src_dot_main_dot_proto_dot_minecraft__pb2.Point.FromString,
+        )
 
 
 class MinecraftServiceServicer(object):
@@ -131,6 +136,13 @@ class MinecraftServiceServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
+  def getHighestYAt(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
 
 def add_MinecraftServiceServicer_to_server(servicer, server):
   rpc_method_handlers = {
@@ -178,6 +190,11 @@ def add_MinecraftServiceServicer_to_server(servicer, server):
           servicer.initDataGen,
           request_deserializer=src_dot_main_dot_proto_dot_minecraft__pb2.Point.FromString,
           response_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+      ),
+      'getHighestYAt': grpc.unary_unary_rpc_method_handler(
+          servicer.getHighestYAt,
+          request_deserializer=src_dot_main_dot_proto_dot_minecraft__pb2.Point.FromString,
+          response_serializer=src_dot_main_dot_proto_dot_minecraft__pb2.Point.SerializeToString,
       ),
   }
   generic_handler = grpc.method_handlers_generic_handler(
