@@ -131,6 +131,8 @@ def main(cfg: DictConfig) -> None:
     # Train the model w/ tqdm
     for update_i in tqdm(range(update_i, cfg.train.num_updates)):
         ims_batch, voxels_batch = next(iter(train_dataloader))
+        ims_batch = ims_batch.to(cfg.device)
+        voxels_batch = voxels_batch.to(cfg.device)
 
         # batch_idxs = np.random.choice(len(ims), cfg.train.batch_size)
         # ims_batch = ims[batch_idxs]
@@ -214,6 +216,9 @@ def eval_data(name, model, cfg, results_dir=None):
     if len(dataloader) == 0:
         return
     features, labels = next(iter(dataloader))
+    # Put on device
+    features = features.to(cfg.device)
+    labels = labels.to(cfg.device)
 
     # TODO: batch this properly
 

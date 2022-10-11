@@ -16,6 +16,21 @@ def plot_vox_to_ax(ax, voxels: np.ndarray):
         GRASS: "green",
         STONE: "gray",
         WATER: "blue",
+        # light green
+        TALLGRASS: "#90EE90",
+        SAND: "yellow",
+        # dark green
+        CACTUS: "#006400",
+        LEAVES: "forestgreen",
+        LEAVES2: "forestgreen",
+        # blackish grey
+        COAL_ORE: "#2F4F4F",
+        # iron color
+        IRON_ORE: "#BEBEBE",
+        LOG: "saddlebrown",
+        LOG2: "saddlebrown",
+        GRAVEL: "lightgray",
+        WHEAT: "wheat",
     }
     # vox_air = voxels == AIR
     other_vox = voxels != AIR

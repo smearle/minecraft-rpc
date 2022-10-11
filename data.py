@@ -32,7 +32,7 @@ def sort_data(cfg):
         idx_to_coords = {}
         n_sample = 0
         pct = cfg.data[f"pct_{name}"]
-        num_samples = int(pct * cfg.data.num_samples)
+        num_samples = round(pct * cfg.data.num_samples)
         while n_sample < num_samples:
             im_path = os.path.join(cfg.data.data_dir, "screenshots", f"{load_i}.png")
             if os.path.isfile(im_path):
@@ -42,8 +42,8 @@ def sort_data(cfg):
                 idx_to_coords[n_sample] = x, z
                 n_sample += 1
             load_i += 1
+        # print(data_idxs)
         # Dump data_idxs
-        print(data_idxs)
         with open(os.path.join(cfg.data.data_dir, f"{name}_data_idxs.json"), "w") as f:
             json.dump(data_idxs, f)
 
