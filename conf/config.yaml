@@ -2,6 +2,9 @@ defaults:
   - override hydra/launcher: submitit_slurm 
 
 hydra:
+  sweeper:
+    params:
+      train.lr: 1e-1, 5e-2, 1e-2, 5e-3, 1e-3, 5e-4, 1e-4, 5e-5, 1e-5, 5e-6, 1e-6
   launcher:
     # submitit_folder: /checkpoint/${USER}/mc_runs/
     # queue: xeon
@@ -22,7 +25,7 @@ device: cuda
 data:
   dataset: ImsVoxelsDataset
   # dataset: CoordsVoxelsDataset
-  num_samples: 7000
+  num_samples: 40000
   data_dir: data
   pct_train: 0.8
   pct_val: 0.1
@@ -31,7 +34,7 @@ data:
 train:
   load: true
   lr: 0.0001
-  num_updates: 50000
+  num_updates: 100000
   eval_interval: 100
   log_interval: 1
   save_interval: 100

@@ -17,8 +17,19 @@ import yaml
 from render import plot_pred_trg, plot_voxels
 
 from data import CoordsVoxelsDataset, ImsVoxelsDataset, sort_data
-from models import *
+from models import ConvDense, ConvDenseDeconv
 from utils import get_exp_name
+
+
+MODELS = {
+    "ConvDense": ConvDense,
+    "ConvDenseDeconv": ConvDenseDeconv,
+}
+
+DATASETS = {
+    "ImsVoxelsDataset": ImsVoxelsDataset,
+    "CoordsVoxelsDataset": CoordsVoxelsDataset,
+}
 
 
 def mse_loss(preds, targets):
@@ -84,7 +95,9 @@ def cross_entropy_loss(preds, targets):
 @hydra.main(version_base=None, config_path="conf", config_name="config")
 def main(cfg: DictConfig) -> None:
     """Main entrypoint for the project"""
-    Model = globals()[cfg.model.name]
+    if cfg.model.name not in MODELS:
+        raise Exception(f"Model {cfg.model.name} not implemented")
+    Model = MODELS[cfg.model.name]
     load = cfg.train.load or cfg.evaluate.val
     save_dir = cfg.save_dir = os.path.join("saves", get_exp_name(cfg))
     # if not os.path.exists(os.path.join(cfg.data.data_dir, "test_data_idxs.json")):
@@ -95,7 +108,7 @@ def main(cfg: DictConfig) -> None:
     print(f"Time to sort data: {time.time() - start}")
     # data_dir = load_data(cfg)        
     # ims, voxels = data_dir["data"], data_dir["labels"]
-    Dataset = globals()[cfg.data.dataset]
+    Dataset = DATASETS[cfg.data.dataset]
     train_data = Dataset(cfg=cfg, name="train")
     train_dataloader = DataLoader(train_data, batch_size=cfg.train.batch_size, shuffle=True)
     train_features, train_labels = next(iter(train_dataloader))
@@ -204,7 +217,7 @@ def evaluate(model, update_i, cfg):
 
 
 def eval_data(name, model, cfg, results_dir=None):
-    Dataset = globals()[cfg.data.dataset]
+    Dataset = DATASETS[cfg.data.dataset]
     data = Dataset(cfg=cfg, name=name)
     if len(data) == 0:
         return None
