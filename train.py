@@ -5,6 +5,7 @@ import os
 import shutil
 from PIL import Image
 
+from einops import rearrange
 import hydra
 import numpy as np
 from omegaconf import DictConfig, OmegaConf
@@ -17,6 +18,7 @@ import yaml
 from clients.python.mc_render import mc_render
 from render import plot_pred_trg, plot_voxels
 
+from clients.python.src.main.proto.minecraft_pb2 import *
 from data import CoordsVoxelsDataset, ImsVoxelsDataset, sort_data
 from models import ConvDense, ConvDenseDeconv
 from utils import get_exp_name
@@ -37,7 +39,11 @@ def mse_loss(preds, targets):
     return th.nn.functional.mse_loss(preds, targets)
 
 def cross_entropy_loss(preds, targets):
+    preds = preds.view(-1, preds.shape[1])
+    targets = targets.view(-1, targets.shape[1])
     return th.nn.functional.cross_entropy(preds, targets)
+    weight = targets.shape[0] / targets.sum(dim=0)
+    return th.nn.functional.cross_entropy(preds, targets, weight=weight)
 
 
 # def load_data(cfg):
@@ -154,9 +160,13 @@ def main(cfg: DictConfig) -> None:
         # Forward pass
         outputs = model(ims_batch)
 
-        # loss = mse_loss(outputs, voxels_batch)
-        loss = cross_entropy_loss(outputs, voxels_batch)
+        loss = mse_loss(outputs, voxels_batch)
+        # loss = cross_entropy_loss(outputs, voxels_batch)
         writer.add_scalar("train/loss", loss.item(), update_i)
+        disc_preds = th.eye(256).to(cfg.device)[outputs.argmax(1)]
+        disc_preds = rearrange(disc_preds, "b w h d c -> b c w h d")
+        disc_loss = mse_loss(disc_preds, voxels_batch)
+        writer.add_scalar("train/discrete_loss", disc_loss.item(), update_i)
         
         # Backward and optimize
         optimizer.zero_grad()
@@ -170,7 +180,7 @@ def main(cfg: DictConfig) -> None:
             param.data -= cfg.train.lr * param.grad.data
         
         if (update_i + 1) % cfg.train.log_interval == 0:
-            print(f'Update [{update_i + 1}/{cfg.train.num_updates}], Loss: {loss.item():.4e}')
+            print(f'Update [{update_i + 1}/{cfg.train.num_updates}], Loss: {loss.item():.4e}, Discrete loss: {disc_loss.item():.4e}')
 
         # Save model and optimizer
         if (update_i + 1) % cfg.train.save_interval == 0:
@@ -196,10 +206,11 @@ def main(cfg: DictConfig) -> None:
 
         # Evaluate
         if (update_i + 1) % cfg.train.eval_interval == 0:
-            val_loss = eval_data("val", model, cfg, results_dir=None)
+            val_loss, val_disc_loss = eval_data("val", model, cfg, results_dir=None)
             # Log to tensorboard
             if val_loss is not None:
                 writer.add_scalar("val/loss", val_loss, update_i)
+                writer.add_scalar("val/discrete_loss", val_disc_loss.item(), update_i)
 
 
 def evaluate(model, update_i, cfg):
@@ -222,7 +233,7 @@ def eval_data(name, model, cfg, results_dir=None):
     Dataset = DATASETS[cfg.data.dataset]
     data = Dataset(cfg=cfg, name=name)
     if len(data) == 0:
-        return None
+        return None, None
     dataloader = DataLoader(data, batch_size=cfg.evaluate.batch_size, shuffle=True)
     # data = data_dir[f"{name}_data"]
     # if data.shape[0] == 0:
@@ -241,8 +252,11 @@ def eval_data(name, model, cfg, results_dir=None):
     with th.no_grad():
         # Evaluate the model
         preds = model(features)
-        # loss = mse_loss(preds, labels)
-        loss = cross_entropy_loss(preds, labels)
+        loss = mse_loss(preds, labels)
+        disc_preds = th.eye(256).to(cfg.device)[outputs.argmax(1)]
+        disc_preds = rearrange(disc_preds, "b w h d c -> b c w h d")
+        disc_loss = mse_loss(disc_preds, voxels_batch)
+        # loss = cross_entropy_loss(preds, labels)
         if results_dir is not None:
 
             render_preds, render_labels = [], []
@@ -268,7 +282,7 @@ def eval_data(name, model, cfg, results_dir=None):
                 mc_render(render_preds, render_labels)
 
     print(f"{name} loss: {loss.item()}")
-    return loss
+    return loss, disc_loss
 
 if __name__ == "__main__":
     main()

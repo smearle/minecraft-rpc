@@ -1,5 +1,6 @@
 defaults:
   - override hydra/launcher: submitit_slurm 
+  # - override hydra/launcher: submitit_local
 
 hydra:
   sweeper:
@@ -11,7 +12,7 @@ hydra:
     tasks_per_node: 1
     cpus_per_task: 1
     gpus_per_node: 1
-    timeout_min: 240
+    timeout_min: 720
     mem_gb: 10
     # partition: dev
     # constraint: volta32gb
@@ -25,7 +26,7 @@ device: cuda
 data:
   dataset: ImsVoxelsDataset
   # dataset: CoordsVoxelsDataset
-  num_samples: 40000
+  num_samples: 20000
   data_dir: data
   pct_train: 0.8
   pct_val: 0.1

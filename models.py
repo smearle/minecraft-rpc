@@ -17,6 +17,7 @@ class ConvDense(th.nn.Module):
         self.conv2 = th.nn.Conv2d(6, 16, 5)
         self.conv3 = th.nn.Conv2d(16, 8, 5)
         fc_shape = prod(self.pool(self.conv3(self.pool(self.conv2(self.pool(self.conv1(th.zeros(1, *in_shape))))))).shape[1:])
+        # fc_shape = prod(self.conv3(self.conv2(self.conv1(th.zeros(1, *in_shape)))).shape[1:])
         self.fc1 = th.nn.Linear(fc_shape, n_hid_1)
         self.fc2 = th.nn.Linear(n_hid_1, n_hid_2)
         out_size_flat = prod(out_shape)
@@ -60,28 +61,38 @@ class ConvDenseDeconv(th.nn.Module):
     def __init__(self, in_shape, out_shape, cfg: DictConfig) -> None:
         super().__init__()
         n_out_chan = out_shape[0]
-        self.conv_1 = th.nn.Conv2d(4, 6, 5)
-        self.conv_2 = th.nn.Conv2d(6, 16, 5)
-        self.conv_3 = th.nn.Conv2d(16, 8, 5)
-        self.pool = th.nn.MaxPool2d(2, 2)
-        fc_shape = prod(self.pool(self.conv_3(self.pool(self.conv_2(self.pool(self.conv_1(th.zeros(1, *in_shape))))))).shape[1:])
-        self.fc_1 = th.nn.Linear(fc_shape, 256)
-        self.deconv1 = th.nn.ConvTranspose3d(8, 16, 4, padding=(1,1,1), stride=(2, 2, 2))  # 8
-        self.deconv2 = th.nn.ConvTranspose3d(16, 8, 4, padding=(1,1,1), stride=(2, 2, 2))  # 16
-        self.deconv3 = th.nn.ConvTranspose3d(8, n_out_chan, 5, padding=(0, 1, 0))  # 20
-        self.upsample = th.nn.Upsample(scale_factor=2, mode="nearest")
+        n_in_chan = in_shape[0]
+        n_filters_1 = 64
+        n_filters_2 = 32
+        n_filters_3 = 32
+        self.hid_shape = (n_filters_3, 4, 2, 4)
+        n_hid_chan_1 = prod(self.hid_shape)
+        self.conv_1 = th.nn.Conv2d(n_in_chan, n_filters_1, 7, stride=4)
+        self.conv_2 = th.nn.Conv2d(n_filters_1, n_filters_2, 7, stride=4)
+        self.conv_3 = th.nn.Conv2d(n_filters_2, n_filters_2, 5, stride=2)
+        self.conv_4 = th.nn.Conv2d(n_filters_2, n_filters_3, 3, stride=2)
+        # self.pool = th.nn.MaxPool2d(2, 2)
+        fc_shape = prod(self.conv_4(self.conv_3(self.conv_2(self.conv_1(th.zeros(1, *in_shape))))).shape[1:])
+        self.fc_1 = th.nn.Linear(fc_shape, n_hid_chan_1)
+        self.deconv1 = th.nn.ConvTranspose3d(n_filters_3, n_filters_2, 4, padding=(1,1,1), stride=(2, 2, 2))  # 8
+        self.deconv2 = th.nn.ConvTranspose3d(n_filters_2, n_filters_2, 4, padding=(1,1,1), stride=(2, 2, 2))  # 16
+        self.deconv3 = th.nn.ConvTranspose3d(n_filters_2, n_filters_1, 5, padding=(0, 1, 0))  # 20
+        self.decode_blocks = th.nn.Conv3d(n_filters_1, n_out_chan, 3, padding=1)
+        # self.upsample = th.nn.Upsample(scale_factor=2, mode="nearest")
 
     def forward(self, x):
         b = x.shape[0]
-        x = self.pool(th.relu(self.conv_1(x)))
-        x = self.pool(th.relu(self.conv_2(x)))
-        x = self.pool(th.relu(self.conv_3(x)))
+        x = th.relu(self.conv_1(x))
+        x = th.relu(self.conv_2(x))
+        x = th.relu(self.conv_3(x))
+        x = th.relu(self.conv_4(x))
         x = x.reshape(b, -1)
         x = th.nn.functional.relu(self.fc_1(x))
-        x = x.view(-1, 8, 4, 2, 4)
+        x = x.view(-1, *self.hid_shape)
         x = th.relu(self.deconv1(x))
         x = th.relu(self.deconv2(x))
-        x = self.deconv3(x)
+        x = th.relu(self.deconv3(x))
+        x = self.decode_blocks(x)
         x = th.softmax(x, dim=1)
         return x
 

@@ -31,6 +31,10 @@ def plot_vox_to_ax(ax, voxels: np.ndarray):
         LOG2: "saddlebrown",
         GRAVEL: "lightgray",
         WHEAT: "wheat",
+        SAPLING: "limegreen",
+        PUMPKIN: "orange",
+        # dark orange
+        PUMPKIN_STEM: "#FF8C00",
     }
     # vox_air = voxels == AIR
     other_vox = voxels != AIR
