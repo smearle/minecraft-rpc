@@ -99,7 +99,7 @@ class ImsVoxelsDataset(Dataset):
         # plt.show()
 
         # print(vox_path)
-        # print(voxels.shape)
+        # print(voxels.shape, image.shape)
         # Changing to float32
         return image.float(), voxels.float()
 

@@ -49,5 +49,7 @@ model:
 optimizer:
 
 evaluate:
-  val: False
+  # mode: None
+  # mode: plt
+  mode: mc
   batch_size: 10

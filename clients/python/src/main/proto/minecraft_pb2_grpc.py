@@ -2,7 +2,7 @@
 import grpc
 
 from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
-from src.main.proto import minecraft_pb2 as src_dot_main_dot_proto_dot_minecraft__pb2
+from clients.python.src.main.proto import minecraft_pb2 as src_dot_main_dot_proto_dot_minecraft__pb2
 
 
 class MinecraftServiceStub(object):

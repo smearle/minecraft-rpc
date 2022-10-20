@@ -14,6 +14,7 @@ from torch.utils.tensorboard import SummaryWriter
 import torch as th
 from tqdm import tqdm
 import yaml
+from clients.python.mc_render import mc_render
 from render import plot_pred_trg, plot_voxels
 
 from data import CoordsVoxelsDataset, ImsVoxelsDataset, sort_data
@@ -97,8 +98,8 @@ def main(cfg: DictConfig) -> None:
     """Main entrypoint for the project"""
     if cfg.model.name not in MODELS:
         raise Exception(f"Model {cfg.model.name} not implemented")
-    Model = MODELS[cfg.model.name]
-    load = cfg.train.load or cfg.evaluate.val
+    Model = MODELS[cfg.model.name] 
+    load = cfg.train.load or (cfg.evaluate.mode is not None)    
     save_dir = cfg.save_dir = os.path.join("saves", get_exp_name(cfg))
     # if not os.path.exists(os.path.join(cfg.data.data_dir, "test_data_idxs.json")):
     # Time this function:
@@ -120,15 +121,15 @@ def main(cfg: DictConfig) -> None:
 
     if load is True and os.path.exists(os.path.join(save_dir, "model.pt")):
         update_i = yaml.load(open(os.path.join(save_dir, "log.yaml"), "r"), Loader=yaml.FullLoader)["update_i"]
-        model.load_state_dict(th.load(os.path.join(cfg.save_dir, "model.pt")))
-        optimizer.load_state_dict(th.load(os.path.join(cfg.save_dir, "optimizer.pt")))
+        model.load_state_dict(th.load(os.path.join(cfg.save_dir, "model.pt"), map_location=cfg.device))
+        optimizer.load_state_dict(th.load(os.path.join(cfg.save_dir, "optimizer.pt"), map_location=cfg.device))
         log = yaml.load(open(os.path.join(save_dir, "log.yaml"), "r"), Loader=yaml.FullLoader)
         update_i = log["update_i"]
     
     else:
         update_i = 0
 
-    if cfg.evaluate.val is True:
+    if cfg.evaluate.mode is not None:
         evaluate(model, update_i, cfg)
         return
 
@@ -212,7 +213,8 @@ def evaluate(model, update_i, cfg):
 
     # data_dir = load_data(cfg)
 
-    for name in ["train", "val", "test"]:
+    # for name in ["train", "val", "test"]:
+    for name in ["train"]:
         eval_data(name, model, cfg, results_dir=results_dir)
 
 
@@ -243,6 +245,7 @@ def eval_data(name, model, cfg, results_dir=None):
         loss = cross_entropy_loss(preds, labels)
         if results_dir is not None:
 
+            render_preds, render_labels = [], []
             # Visualize the results
             for i in range(min(10, len(features))):
                 if cfg.data.dataset == "ImsVoxelsDataset":
@@ -258,6 +261,11 @@ def eval_data(name, model, cfg, results_dir=None):
                 # plot_voxels(pred, label, save_path=os.path.join(results_dir, f"{name}_pred_trg_{i}.png"))
                 plot_pred_trg(pred=pred, trg=label, img=img, save_path=os.path.join(results_dir, f"{name}_pred_trg_{i}.png"))
                 pred = preds[i].cpu().numpy()
+                render_preds.append(pred)
+                render_labels.append(label)
+
+            if cfg.evaluate.mode == "mc":
+                mc_render(render_preds, render_labels)
 
     print(f"{name} loss: {loss.item()}")
     return loss

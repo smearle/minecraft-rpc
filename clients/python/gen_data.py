@@ -25,6 +25,8 @@ BBOX = (BBOX_OFFSET[0], BBOX_OFFSET[1], BBOX_OFFSET[0] + SCREENSHOT_SIZE[0], BBO
 def top_left_corner_screenshot(name: str, bbox: tuple, save_dir: str = "screenshots"):
     im = ImageGrab.grab(bbox)
     # Save image to file
+    if np.array(im).shape != (512, 512, 4):
+        raise Exception(f"Screenshot is not 512x512, size is {np.array(im).shape}. Has the display gone to sleep?")
     im.save(os.path.join("data", save_dir, f"{name}.png"))
 
 
@@ -130,7 +132,7 @@ def get_nerf_screenies(client, load: bool = False, center: tuple = (0, 0, 0)):
         scrn_coords.loc[i] = [x, y, z, rot_y]
             # Save dataframe to file
             # TODO: Append to the file instead of overwriting
-        top_left_corner_screenshot(f"{i}", bbox=BBOX, save_dir="nerf_screenshots")
+        top_left_corner_screenshot(f"{i:07d}", bbox=BBOX, save_dir="nerf_screenshots")
         # Define transform matrix taking into account the rotation and translation of the camera
         transform_matrix = [
             [cos(rot_y_rad), 0, -sin(rot_y_rad), x],
