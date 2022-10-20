@@ -105,6 +105,10 @@ def main(cfg: DictConfig) -> None:
     if cfg.model.name not in MODELS:
         raise Exception(f"Model {cfg.model.name} not implemented")
     Model = MODELS[cfg.model.name] 
+    if cfg.train.loss == "mse":
+        loss_fn = mse_loss
+    elif cfg.train.loss == "ce":
+        loss_fn = cross_entropy_loss
     load = cfg.train.load or (cfg.evaluate.mode is not None)    
     save_dir = cfg.save_dir = os.path.join("saves", get_exp_name(cfg))
     # if not os.path.exists(os.path.join(cfg.data.data_dir, "test_data_idxs.json")):
@@ -135,8 +139,8 @@ def main(cfg: DictConfig) -> None:
     else:
         update_i = 0
 
-    if cfg.evaluate.mode is not None:
-        evaluate(model, update_i, cfg)
+    if cfg.evaluate.mode != "None":
+        evaluate(model, loss_fn, update_i, cfg)
         return
 
 
@@ -160,7 +164,8 @@ def main(cfg: DictConfig) -> None:
         # Forward pass
         outputs = model(ims_batch)
 
-        loss = mse_loss(outputs, voxels_batch)
+        loss = loss_fn(outputs, voxels_batch)
+        # loss = mse_loss(outputs, voxels_batch)
         # loss = cross_entropy_loss(outputs, voxels_batch)
         writer.add_scalar("train/loss", loss.item(), update_i)
         disc_preds = th.eye(256).to(cfg.device)[outputs.argmax(1)]
@@ -206,14 +211,14 @@ def main(cfg: DictConfig) -> None:
 
         # Evaluate
         if (update_i + 1) % cfg.train.eval_interval == 0:
-            val_loss, val_disc_loss = eval_data("val", model, cfg, results_dir=None)
+            val_loss, val_disc_loss = eval_data("val", model, loss_fn, cfg, results_dir=None)
             # Log to tensorboard
             if val_loss is not None:
                 writer.add_scalar("val/loss", val_loss, update_i)
                 writer.add_scalar("val/discrete_loss", val_disc_loss.item(), update_i)
 
 
-def evaluate(model, update_i, cfg):
+def evaluate(model, loss_fn, update_i, cfg):
 
     # results_dir = os.path.join(cfg.save_dir, f"results_{update_i}")
     results_dir = os.path.join(cfg.save_dir, f"results")
@@ -226,10 +231,10 @@ def evaluate(model, update_i, cfg):
 
     # for name in ["train", "val", "test"]:
     for name in ["train"]:
-        eval_data(name, model, cfg, results_dir=results_dir)
+        eval_data(name, model, loss_fn, cfg, results_dir=results_dir)
 
 
-def eval_data(name, model, cfg, results_dir=None):
+def eval_data(name, model, loss_fn, cfg, results_dir=None):
     Dataset = DATASETS[cfg.data.dataset]
     data = Dataset(cfg=cfg, name=name)
     if len(data) == 0:
@@ -252,10 +257,10 @@ def eval_data(name, model, cfg, results_dir=None):
     with th.no_grad():
         # Evaluate the model
         preds = model(features)
-        loss = mse_loss(preds, labels)
-        disc_preds = th.eye(256).to(cfg.device)[outputs.argmax(1)]
+        loss = loss_fn(preds, labels)
+        disc_preds = th.eye(256).to(cfg.device)[preds.argmax(1)]
         disc_preds = rearrange(disc_preds, "b w h d c -> b c w h d")
-        disc_loss = mse_loss(disc_preds, voxels_batch)
+        disc_loss = mse_loss(disc_preds, labels)
         # loss = cross_entropy_loss(preds, labels)
         if results_dir is not None:
 
