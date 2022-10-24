@@ -8,3 +8,5 @@ server/*
 !server/mods/*
 !server/server.properties
 !server/minecraft-rpc-0.0.5.jar
+**/*/.ipynb_checkpoints
+**/*/logs
